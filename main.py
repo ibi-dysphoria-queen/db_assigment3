@@ -59,16 +59,14 @@ conn.commit()
 print("Customer table created.")
 cursor.execute("""
     CREATE TABLE IF NOT EXISTS Device (
-        phone_id     INTEGER PRIMARY KEY AUTOINCREMENT,
+        device_id     INTEGER PRIMARY KEY AUTOINCREMENT,
+        device_type TEXT    NOT NULL,
         customized_version_number      TEXT    NOT NULL,
         model       TEXT    NOT NULL,
-        manufacturer           TEXT    NOT NULL UNIQUE,
-        email           TEXT,
-        customer_type   TEXT    NOT NULL CHECK(customer_type IN ('private', 'corporate')),
-        company_name    TEXT,
-        tax_number      TEXT
+        manufacturer           TEXT    NOT NULL,
+        passocde TEXT
     );
 """)
 
 conn.commit()
-print("Customer table created.")
+print("device table created.")
