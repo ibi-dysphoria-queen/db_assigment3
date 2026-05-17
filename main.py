@@ -70,3 +70,49 @@ cursor.execute("""
 
 conn.commit()
 print("device table created.")
+
+cursor.execute("""
+    CREATE TABLE IF NOT EXISTS Ticket (
+        ticket_no     INTEGER PRIMARY KEY AUTOINCREMENT,
+        deposit FLOAT    NOT NULL,
+        problem      TEXT    NOT NULL,
+        speed_estimate       TEXT    NOT NULL
+        manufacturer           TEXT    NOT NULL,
+        passocde TEXT
+        additional_repair TEXT
+        diagnostic_fee FLOAT
+    );
+""")
+
+conn.commit()
+print("ticket table created.")
+
+cursor.execute("""
+    CREATE TABLE IF NOT EXISTS CompletedOrderForm (
+        ticket_no     INTEGER PRIMARY KEY ,
+        final_cost FLOAT    NOT NULl
+        completion_date DATE NOT NULL,
+        warrany_coverage      TEXT    NOT NULL,
+        speed_estimate       TEXT    NOT NULL
+        manufacturer           TEXT    NOT NULL,
+        passocde TEXT
+        additional_repair TEXT
+        diagnostic_fee FLOAT
+        extra_notes TEXT
+    );
+""")
+
+conn.commit()
+print("CompletedOrderForm table created.")
+
+cursor.execute("""
+    CREATE TABLE IF NOT EXISTS Device (
+        serial_number     TEXT PRIMARY KEY ,
+        quality TEXT    NOT NULL,
+        supplier      TEXT    NOT NULL,
+        part_type       TEXT    NOT NULL,
+        manufacturer           TEXT    NOT NULL,
+    );
+""")
+conn.commit()
+print("part table created.")
