@@ -58,29 +58,41 @@ cursor.execute("""
 conn.commit()
 print("Customer table created.")
 cursor.execute("""
-    CREATE TABLE IF NOT EXISTS Device (
-        device_id     INTEGER PRIMARY KEY AUTOINCREMENT,
-        device_type TEXT    NOT NULL,
-        customized_version_number      TEXT    NOT NULL,
-        model       TEXT    NOT NULL,
-        manufacturer           TEXT    NOT NULL,
-        passocde TEXT
+    CREATE TABLE IF NOT EXISTS Employee (
+        employee_id     INTEGER PRIMARY KEY AUTOINCREMENT,
+        first_name      TEXT    NOT NULL,
+        last_name       TEXT    NOT NULL,
+        phone           TEXT    NOT NULL UNIQUE,
+        email           TEXT, NOT NULL UNIQUE,
+        occupation      TEXT NOT NULL
     );
 """)
 
 conn.commit()
-print("device table created.")
+print("Employee table created.")
+cursor.execute("""
+    CREATE TABLE IF NOT EXISTS Supplier (
+        name TEXT  PRIMARY kEY NOT NULL,
+        location    TEXT    NOT NULL
+
+    );
+""")
+
+conn.commit()
+print("supplier table created.")
 
 cursor.execute("""
     CREATE TABLE IF NOT EXISTS Ticket (
         ticket_no     INTEGER PRIMARY KEY AUTOINCREMENT,
+        FOREIGN KEY (customer_id) REFERENCES Customer(customer_id),
         deposit FLOAT    NOT NULL,
         problem      TEXT    NOT NULL,
         speed_estimate       TEXT    NOT NULL
         manufacturer           TEXT    NOT NULL,
-        passocde TEXT
-        additional_repair TEXT
-        diagnostic_fee FLOAT
+        passocde TEXT,
+        additional_repair TEXT,
+        diagnostic_fee FLOAT,
+        device TEXT NOT NULL,
         status TEXT NOT NULL
     );
 """)
@@ -89,36 +101,64 @@ conn.commit()
 print("ticket table created.")
 
 cursor.execute("""
-    CREATE TABLE IF NOT EXISTS CompletedOrderForm (
-        ticket_no     INTEGER PRIMARY KEY ,
-        final_cost FLOAT    NOT NULl
-        completion_date DATE NOT NULL,
-        warrany_coverage      TEXT    NOT NULL,
-        speed_estimate       TEXT    NOT NULL
-        manufacturer           TEXT    NOT NULL,
-        passocde TEXT
-        additional_repair TEXT
-        diagnostic_fee FLOAT
-        extra_notes TEXT
+    CREATE TABLE IF NOT EXISTS Repair (
+        repair_id INTEGER PRIMARY KET AUTOINCREMENT,
+        repair_type TEXT NOT NULL,
+        FOREIGN KEY (customer_id) REFERENCES Customer(customer_id),
+        FOREIGN KEY (ticket_no) REFERENCES Ticket(ticket_no)),
     );
 """)
-
 conn.commit()
-print("CompletedOrderForm table created.")
+print("repair table created.")
 
 cursor.execute("""
-    CREATE TABLE IF NOT EXISTS Device (
-        serial_number     TEXT PRIMARY KEY ,
+    CREATE TABLE IF NOT EXISTS Part (
+        part_id INTEGER PRIMARY KEY AUTOINCREMENT,
+        serial_number     INTEGER ,
+        FOREIGN KEY (name) REFERENCES Supplier(name)),
         quality TEXT    NOT NULL,
         supplier      TEXT    NOT NULL,
         part_type       TEXT    NOT NULL,
-        manufacturer           TEXT    NOT NULL,
+        manufacturer           TEXT    NOT NULL
     );
 """)
 conn.commit()
 print("part table created.")
+cursor.execute("""
+    CREATE TABLE IF NOT EXISTS UsedPart (
+        FOREIGN KEY (part_id) REFERENCES Part(part_id)),
+        FOREIGN KEY (repair_id) REFERENCES Repair(repair_id)),
+        PRIMARY KEY(repair_id, part_id)
+    );
+""")
+conn.commit()
+print("usedpart table created.")
+
+cursor.execute("""
+    CREATE TABLE IF NOT EXISTS Payment (
+        FOREIGN KEY (ticket_id) REFERENCES Ticket(ticket_id)),
+        payment_id INTEGER PRIMARY KEY AUTOINCREMENT,
+        payment_ammount FLOAT, NOT NULL,
+        payment_method    TEXT    NOT NULL CHECK(payment_method IN ('check', 'card','cash'))
+    );
+""")
+conn.commit()
+print("Payment table created.")
+cursor.execute("""
+    CREATE TABLE IF NOT EXISTS ContactEvent (
+        FOREIGN KEY (ticket_id) REFERENCES Ticket(ticket_id)),
+        event_id INTEGER PRIMARY KEY AUTOINCREMENT,
+        message TEXT, NOT NULL,
+        contact_type    TEXT    NOT NULL CHECK(contact_type IN ('call', 'sms','email')),
+        contact_adress TEXT NOT NULL
+    );
+""")
+conn.commit()
+print("ContactEvent table created.")
 
 
+
+#random data start
 num_customers = 50
 
 for i in range(num_customers):
