@@ -2,7 +2,8 @@
 import sqlite3
 import random
 from datetime import datetime, timedelta
-from random import randint
+from random import randint, randrange
+
 
 from faker import Faker
 import pandas as pd
@@ -35,6 +36,8 @@ tables_to_drop = [
     'Supplier',
     'Employee',
     'Customer',
+    'Payment',
+    'ContactEvent'
     # ... add the rest of your tables here
 ]
 
@@ -53,7 +56,10 @@ cursor.execute("""
         email           TEXT,
         customer_type   TEXT    NOT NULL CHECK(customer_type IN ('private', 'corporate')),
         company_name    TEXT,
-        tax_number      TEXT
+        tax_number      TEXT,
+        discount_eligibility TEXT    NOT NULL DEFAULT 'None',
+
+
     );
 """)
 
@@ -102,7 +108,7 @@ cursor.execute("""
     CREATE TABLE IF NOT EXISTS Repair (
         repair_id INTEGER PRIMARY KET AUTOINCREMENT,
         repair_type TEXT NOT NULL,
-        FOREIGN KEY (customer_id) REFERENCES Customer(customer_id),
+        FOREIGN KEY (employee_id) REFERENCES Employee(employee_id),
         FOREIGN KEY (ticket_no) REFERENCES Ticket(ticket_no)),
     );
 """)
@@ -133,7 +139,7 @@ print("usedpart table created.")
 
 cursor.execute("""
     CREATE TABLE IF NOT EXISTS Payment (
-        FOREIGN KEY (ticket_id) REFERENCES Ticket(ticket_id)),
+        FOREIGN KEY (ticket_no) REFERENCES Ticket(ticket_no)),
         payment_id INTEGER PRIMARY KEY AUTOINCREMENT,
         payment_ammount FLOAT, NOT NULL,
         payment_method    TEXT    NOT NULL CHECK(payment_method IN ('check', 'card','cash'))
@@ -143,7 +149,7 @@ conn.commit()
 print("Payment table created.")
 cursor.execute("""
     CREATE TABLE IF NOT EXISTS ContactEvent (
-        FOREIGN KEY (ticket_id) REFERENCES Ticket(ticket_id)),
+        FOREIGN KEY (ticket_no) REFERENCES Ticket(ticket_no)),
         event_id INTEGER PRIMARY KEY AUTOINCREMENT,
         message TEXT, NOT NULL,
         contact_type    TEXT    NOT NULL CHECK(contact_type IN ('call', 'sms','email')),
@@ -170,7 +176,7 @@ for i in range(num_customers):
     # Companies have a company name and an Austrian tax number; private customers do not.
     company = fake.company() if c_type == 'corporate' else None
     tax_nr = f"ATU{random.randint(10000000, 99999999)}" if c_type == 'corporate' else None
-
+    discount_eligibility = random.choices([.25,30,10,100,40]) if random.random() < 0.5 else None
     cursor.execute("""
         INSERT INTO Customer
             (first_name, last_name, phone, email, customer_type, company_name, tax_number)
@@ -185,8 +191,8 @@ for i in range(num_tickets):
     cursor.execute("SELECT customer_id FROM Customer;")
     customer_ids = [row[0] for row in cursor.fetchall()]
     chosen_id = random.choice(customer_ids)
-    problem = fake.text(max_nb_chars=100)
-    speed_estimate = fake.text(max_nb_chars=30)
+    problem = fake.text()
+    speed_estimate = fake.text()
     device_name = random.choices([
     ('Apple',   'iPhone 12'),
     ('Apple',   'iPhone 13'),
@@ -239,7 +245,7 @@ print(f"Inserted {num_employees} employees.")
 
 #parts
 num_parts = 30
-for i in range(num_suppliers):
+for i in range(num_parts):
     serial_number = random.randint(10000000, 99999999)
     cursor.execute("SELECT name FROM Supplier;")
     customer_ids = [row[0] for row in cursor.fetchall()]
@@ -255,4 +261,80 @@ for i in range(num_suppliers):
 
 conn.commit()
 print(f"Inserted {num_parts} parts.")
-#employees
+
+#repair
+num_repair = 250
+for i in range(num_repair):
+    repair_type = random.choices([
+    ('Screen replacement',     randrange(120,250)),
+    ('Battery replacement',    randrange( 60, 120)),
+    ('Charging port repair',   randrange( 70, 140)),
+    ('Back glass replacement',  randrange(80, 180)),
+    ('Water damage diagnosis', randrange( 25,  25)),
+    ('Data recovery',          randrange( 40, 150)),
+])
+    cursor.execute("SELECT employee_id FROM Employee;")
+    employee_ids = [row[0] for row in cursor.fetchall()]
+    chosen_employee_id = random.choice(employee_ids)
+    cursor.execute("SELECT ticket_no FROM Ticket;")
+    ticket_ids = [row[0] for row in cursor.fetchall()]
+    chosen_ticket_id = random.choice(ticket_ids)
+
+
+    cursor.execute("""
+                   INSERT INTO Supplier
+                   (repair_type,employee_id,ticket_no)
+                   VALUES (?, ?, ?, ?, ?, ?, ?);
+                   """, (repair_type, chosen_employee_id, chosen_ticket_id))
+
+conn.commit()
+print(f"Inserted {num_repair} repairs.")
+
+#usedparts
+num_used_parts = 400
+for i in range(num_used_parts):
+    cursor.execute("SELECT part_id FROM Part;")
+    part_ids = [row[0] for row in cursor.fetchall()]
+    chosen_part_id = random.choice(part_ids)
+    cursor.execute("SELECT repair_id FROM Repair;")
+    repair_ids = [row[0] for row in cursor.fetchall()]
+    chosen_repair_id = random.choice(repair_ids)
+
+    cursor.execute("""
+                   INSERT INTO UsedPart
+                   (part_id,repair_id)
+                   VALUES (?, ?, ?, ?, ?, ?, ?);
+                   """, (chosen_part_id, chosen_repair_id))
+conn.commit()
+print(f"Inserted {num_used_parts} used parts.")
+#Payment
+num_payment = 200
+for i in range(num_payment):
+    cursor.execute("SELECT ticket_no FROM Ticket;")
+    ticket_ids = [row[0] for row in cursor.fetchall()]
+    chosen_ticket_id = random.choice(ticket_ids)
+    payment = randrange(1,200)
+    payment_method = random.choices(['check', 'card','cash'])
+    cursor.execute("""
+                   INSERT INTO Payment
+                   (ticket_no,payment_amount,payment_method)
+                   VALUES (?, ?, ?, ?, ?, ?, ?);
+                   """, (chosen_ticket_id, payment, payment_method))
+conn.commit()
+print(f"Inserted {num_payment} payments.")
+#ContactEvent
+num_contacts = 200
+for i in range(num_contacts):
+    cursor.execute("SELECT ticket_no FROM Ticket;")
+    ticket_ids = [row[0] for row in cursor.fetchall()]
+    chosen_ticket_id = random.choice(ticket_ids)
+    message = fake.text()
+    contact_type = random.choices(['call', 'SMS','Mail'])
+    adress = fake.email() if random.random() < 0.6 else fake.unique.phone_number()
+    cursor.execute("""
+                   INSERT INTO ContactEvent
+                   (ticket_no,payment_amount,payment_method)
+                   VALUES (?, ?, ?, ?, ?, ?, ?);
+                   """, (chosen_ticket_id, payment, payment_method))
+conn.commit()
+print(f"Inserted {num_contacts} contactevents.")
